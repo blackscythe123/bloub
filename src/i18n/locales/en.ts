@@ -109,9 +109,11 @@ const en: typeof fr = {
     language: 'Language',
     about: 'About',
     credits: 'Made with ❤️ by {name}',
-    creditsAria: 'Jérémy on X, in a new tab',
+    creditsAria: 'Simiyon on GitHub, in a new tab',
     github: 'View the project on GitHub',
-    githubAria: 'The project repository on GitHub, in a new tab'
+    githubAria: 'The project repository on GitHub, in a new tab',
+    templates: 'Animated card templates',
+    templatesAria: 'Gallery of animated card templates you can download and clone'
   },
 
   states: {
@@ -129,7 +131,11 @@ const en: typeof fr = {
     orbit: 'Orbit',
     burst: 'Burst',
     comet: 'Comet',
-    swirl: 'Swirl'
+    swirl: 'Swirl',
+    typing: 'Typing',
+    cheer: 'Cheer',
+    sing: 'Sing',
+    doze: 'Doze'
   },
 
   shapes: {
@@ -174,7 +180,13 @@ const en: typeof fr = {
     fier: 'Proud',
     timide: 'Shy',
     blase: 'Unimpressed',
-    somnolent: 'Sleepy'
+    somnolent: 'Sleepy',
+    joyeux: 'Joyful',
+    etoile: 'Starstruck',
+    clin: 'Cheeky',
+    chante: 'Singing',
+    endormi: 'Asleep',
+    concentre: 'Focused'
   }
 }
 

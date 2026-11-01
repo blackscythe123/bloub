@@ -521,6 +521,33 @@ function dotAttrs(dot: BotFrame['dots'][number]) {
           :r="frame.notch.r"
           fill="#000"
         />
+        <!--
+          Styles d'yeux et bouche : des trous eux aussi, donc valables pour toute
+          couleur et tout fond. Leurs coordonnees sont DEJA a l'ecran, sans
+          `transform` : l'export anime reconnait les yeux a ce seul attribut
+          (`anime.ts`), il ne doit pas les confondre.
+        -->
+        <path
+          v-for="(mark, i) in frame.marks"
+          :key="`m${i}`"
+          :d="mark.d"
+          :opacity="mark.alpha"
+          :fill="mark.stroke ? 'none' : '#000'"
+          stroke="#000"
+          :stroke-width="mark.width"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <path
+          v-if="frame.mouth"
+          :d="frame.mouth.d"
+          :opacity="frame.mouth.alpha"
+          fill="#000"
+          stroke="#000"
+          :stroke-width="frame.mouth.width"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
       </mask>
 
       <linearGradient

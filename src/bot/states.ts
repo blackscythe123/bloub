@@ -15,8 +15,9 @@ import {
   type ArcSpec,
   type DotRender
 } from './decor'
+import { EXPRESSION_BY_ID, type ExpressionId } from './expressions'
 import { EYE_H, EYE_SPLIT, EYE_W, REST_GAZE, type HeadGaze } from './face'
-import { TAU, clamp, easings } from './math'
+import { TAU, clamp, easings, lerp } from './math'
 import {
   circle,
   hullOfCircles,
@@ -25,6 +26,7 @@ import {
   silhouette,
   type Silhouette
 } from './shape'
+import type { FaceExtras } from './traits'
 
 export interface EyeCfg {
   /** largeur locale (axe court de la gelule), en unites de rayon de boule */
@@ -61,6 +63,8 @@ export interface Pose {
   notif: { x: number; y: number; r: number; notch: number } | null
   /** true = le decor passe derriere le corps (particules de l'eclatement) */
   dotsBehind: boolean
+  /** bouche et styles d'yeux (`traits.ts`) ; absent = le visage a deux gelules d'origine */
+  face?: FaceExtras
 }
 
 const pair = (w: number, h: number): [EyeCfg, EyeCfg] => [
@@ -145,6 +149,58 @@ function spinningTriangle(rot: number): Silhouette {
   })
 }
 
+/* ------------------------------------------------- etats a visage expressif */
+
+/** Le visage d'une expression du catalogue, pour les etats qui en portent un. */
+function visage(id: ExpressionId) {
+  const e = EXPRESSION_BY_ID.get(id)!
+  return { gaze: e.gaze, split: e.split, eyes: e.eyes, face: e.face }
+}
+
+/** Montee-descente douce (smoothstep). */
+const lisse = (x: number) => x * x * (3 - 2 * x)
+
+/** 0 avant `a`, monte en `rampe`, tient, retombe pour etre a 0 en `b`. */
+const enveloppe = (t: number, a: number, b: number, rampe: number) =>
+  lisse(clamp((t - a) / rampe)) * lisse(clamp((b - t) / rampe))
+
+/** Periode d'une frappe de `typing`, en secondes. */
+const FRAPPE = 0.3
+/** Periode d'un temps de `sing` ; un balancement en dure deux. */
+const TEMPS = 0.6
+/** Date a laquelle `doze` s'endort. */
+const DODO = 2.8
+
+/** Periode d'un saut de `cheer`, et sa hauteur en rayons de boule. */
+const SAUT = 1.6
+const SAUT_H = 0.3
+
+/**
+ * Un saut de `cheer` : ecrasement `sy` et hauteur `h` a l'instant `t`, periodique.
+ * Elan ecrase (0 a 0,35 s), envol etire puis arrondi au sommet, etirement en retombant,
+ * reception ecrasee et retour au rond. `sy` vaut 1 et `h` 0 aux deux bouts de la periode,
+ * d'ou une boucle sans couture.
+ */
+function saut(t: number): { sy: number; h: number } {
+  const u = ((t % SAUT) + SAUT) % SAUT
+  const { easeInOutCubic, easeOutCubic } = easings
+  if (u < 0.35) return { sy: 1 - 0.16 * easeInOutCubic(u / 0.35), h: 0 }
+  if (u < 1.05) {
+    const p = (u - 0.35) / 0.7
+    const h = 4 * p * (1 - p) * SAUT_H
+    // detente vers l'etire, rond au sommet, leger etire a la retombee
+    const sy =
+      p < 0.2
+        ? lerp(0.84, 1.12, easeOutCubic(p / 0.2))
+        : p < 0.5
+          ? lerp(1.12, 1, easeInOutCubic((p - 0.2) / 0.3))
+          : lerp(1, 1.06, easeInOutCubic((p - 0.5) / 0.5))
+    return { sy, h }
+  }
+  if (u < 1.2) return { sy: lerp(1.06, 0.86, easeOutCubic((u - 1.05) / 0.15)), h: 0 }
+  return { sy: lerp(0.86, 1, easeInOutCubic((u - 1.2) / (SAUT - 1.2))), h: 0 }
+}
+
 /* ------------------------------------------------------------------ etats */
 
 export type StateId =
@@ -162,6 +218,10 @@ export type StateId =
   | 'orbit'
   | 'burst'
   | 'comet'
+  | 'typing'
+  | 'cheer'
+  | 'sing'
+  | 'doze'
   /** transition d'interface, pas une animation du catalogue : hors `SEQUENCE` */
   | 'swirl'
 
@@ -477,6 +537,153 @@ export const STATES: StateDef[] = [
     }
   },
 
+  /*
+   * Les quatre etats suivants ne sont PAS releves sur la video : ils sont choisis,
+   * d'apres les cartes animees de `studio/`, comme `swirl`. Ils n'emploient que le
+   * vocabulaire de pose existant — squash et stretch de la silhouette, decalage,
+   * regard, gelules — plus les extras du visage (`traits.ts`).
+   *
+   * Tous `baseBody` : la forme choisie s'y applique. Tous periodiques (ou tenus sur une
+   * boucle pour `doze`), de sorte qu'un bloc allonge fait des tours de plus sans couture.
+   * Les mouvements verticaux passent par `offY` et non par `sil.cy` : le visage descend
+   * ainsi AVEC le corps qui s'ecrase, et le bas du corps reste pose au sol (`offY = 1 - sy`).
+   */
+
+  {
+    // frappe au clavier : petit rebond ecrase rapide, regard sur l'ecran
+    id: 'typing',
+    // 8 frappes et 2 balayages du regard : la boucle retombe exactement sur elle-meme
+    duration: 2.4,
+    morph: 0.4,
+    blinkIn: true,
+    baseFace: false,
+    baseBody: true,
+    pose: (t) => {
+      const v = visage('concentre')
+      const frappe = 0.5 - 0.5 * Math.cos((t * TAU) / FRAPPE)
+      const sy = 1 - 0.035 * frappe
+      return base({
+        sil: circle(1, { sx: 1 + 0.02 * frappe, sy }),
+        offY: 1 - sy,
+        gaze: {
+          // les yeux suivent la ligne : un aller-retour lent par-dessus la frappe
+          yaw: v.gaze.yaw + 4 * Math.sin((t * TAU) / (FRAPPE * 4)),
+          pitch: v.gaze.pitch - 3 - 2 * frappe,
+          roll: 0
+        },
+        split: v.split,
+        eyes: v.eyes,
+        face: { ...v.face, mouth: { smile: 0.1, open: 0.28 + 0.08 * frappe, w: 0.04 } }
+      })
+    }
+  },
+
+  {
+    // hourra : elan ecrase, saut etire, reception ecrasee, puis on recommence
+    id: 'cheer',
+    duration: 3.2,
+    minDuration: SAUT,
+    morph: 0.4,
+    blinkIn: true,
+    baseFace: false,
+    baseBody: true,
+    pose: (t) => {
+      const v = visage('joyeux')
+      const { sy, h } = saut(t)
+      const haut = h / SAUT_H
+      return base({
+        sil: circle(1, { sx: 1 + (1 - sy) * 0.6, sy }),
+        // le bas du corps reste au sol, moins la hauteur du saut
+        offY: 1 - sy - h,
+        gaze: { ...v.gaze, pitch: v.gaze.pitch + 5 * haut },
+        split: v.split,
+        eyes: v.eyes,
+        face: {
+          ...v.face,
+          mouth: { smile: 0.9, open: 0.45 + 0.35 * haut, w: 0.1 }
+        }
+      })
+    }
+  },
+
+  {
+    // chanson : balancement d'un cote a l'autre, rebond sur le temps, bouche qui bat
+    id: 'sing',
+    // deux balancements, quatre temps
+    duration: 2.4,
+    morph: 0.45,
+    blinkIn: true,
+    baseFace: false,
+    baseBody: true,
+    pose: (t) => {
+      const v = visage('chante')
+      const balance = Math.sin((t * TAU) / (TEMPS * 2))
+      const temps = 0.5 - 0.5 * Math.cos((t * TAU) / TEMPS)
+      const sy = 1 - 0.03 * temps
+      return base({
+        sil: circle(1, { rot: 0.08 * balance, sx: 1 + 0.02 * temps, sy }),
+        offX: 0.05 * balance,
+        offY: 1 - sy,
+        gaze: { yaw: v.gaze.yaw + 6 * balance, pitch: v.gaze.pitch, roll: 9 * balance },
+        split: v.split,
+        eyes: v.eyes,
+        face: {
+          ...v.face,
+          // la bouche s'ouvre quand le corps remonte du temps
+          mouth: { smile: 0.3, open: 0.15 + 0.55 * (1 - temps), w: 0.05 + 0.012 * (1 - temps) }
+        }
+      })
+    }
+  },
+
+  {
+    // assoupi : la tete pique du nez, un baillement, puis le sommeil qui respire
+    id: 'doze',
+    duration: 6,
+    // endormi pour de bon a DODO + 0,8
+    minDuration: 3.6,
+    morph: 0.45,
+    blinkIn: false,
+    baseFace: false,
+    baseBody: true,
+    pose: (t) => {
+      const v = visage('endormi')
+      // la tete tombe puis se reprend, une fois
+      const pique = Math.sin(clamp(t / 1.6) * Math.PI)
+      // baillement : monte, tient, retombe
+      const baille = enveloppe(t, 1.55, 3.05, 0.45)
+      // les yeux se ferment au baillement et ne se rouvrent plus
+      const ferme = lisse(clamp((t - 1.75) / 0.4))
+      const dodo = lisse(clamp((t - DODO) / 0.8))
+      // respiration lente, nulle a l'entree du sommeil pour que le raccord soit continu
+      const souffle = Math.sin(((t - DODO) * TAU) / 2.6) * dodo
+      const sy = (1 + 0.08 * baille) * (1 + 0.025 * souffle)
+      return base({
+        sil: circle(1, { sx: 1 - 0.04 * baille, sy }),
+        offY: 1 - sy + 0.03 * pique,
+        gaze: {
+          yaw: v.gaze.yaw,
+          pitch: v.gaze.pitch + 2 - 12 * pique + 9 * baille - 3 * dodo,
+          roll: -4 * pique
+        },
+        split: v.split,
+        // paupieres lourdes pendant que la tete pique, avant de laisser place aux arcs
+        eyes: [
+          { ...v.eyes[0], open: 1 - 0.55 * pique },
+          { ...v.eyes[1], open: 1 - 0.55 * pique }
+        ],
+        face: {
+          sleep: [ferme, ferme],
+          mouth: {
+            smile: lerp(0.15, 0, baille),
+            open: lerp(lerp(0.1, 1.05, baille), 0.15 + 0.06 * souffle, dodo),
+            w: lerp(lerp(0.04, 0.085, baille), 0.035, dodo)
+          }
+        }
+      })
+    }
+  },
+
   {
     /**
      * Entree dans la vue des reglages.
@@ -595,7 +802,11 @@ export const POSES: Record<StateId, number> = {
   orbit: 1.2,
   swirl: 0.5,
   burst: 0.45,
-  comet: 1.15
+  comet: 1.15,
+  typing: 0.45,
+  cheer: 0.7,
+  sing: 0.45,
+  doze: 4.2
 }
 
 export const SEQUENCE: StateId[] = [
@@ -612,5 +823,9 @@ export const SEQUENCE: StateId[] = [
   'play',
   'orbit',
   'burst',
-  'comet'
+  'comet',
+  'typing',
+  'cheer',
+  'sing',
+  'doze'
 ]

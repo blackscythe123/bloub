@@ -19,10 +19,11 @@ function rendu(matrix: string, w: number, h: number) {
 }
 
 describe('catalogue des expressions', () => {
-  it('expose 16 expressions aux identifiants uniques', () => {
-    expect(EXPRESSIONS).toHaveLength(16)
-    expect(new Set(EXPRESSIONS.map((e) => e.id)).size).toBe(16)
-    expect(EXPRESSION_BY_ID.size).toBe(16)
+  // 16 expressions a gelules seules, plus 6 a bouche et styles d'yeux (`traits.ts`)
+  it('expose 22 expressions aux identifiants uniques', () => {
+    expect(EXPRESSIONS).toHaveLength(22)
+    expect(new Set(EXPRESSIONS.map((e) => e.id)).size).toBe(22)
+    expect(EXPRESSION_BY_ID.size).toBe(22)
   })
 
   /**
@@ -61,7 +62,7 @@ describe('catalogue des expressions', () => {
     expect(Math.sign(colere[0]!)).toBe(-Math.sign(triste[0]!))
   })
 
-  it('garde les deux yeux dans la silhouette, sur les 16 expressions', () => {
+  it('garde les deux yeux dans la silhouette, sur toutes les expressions', () => {
     for (const e of EXPRESSIONS) {
       const f = new BotEngine(100, 'idle', cercle(), e).sample(1)
       expect(f.eyes, e.id).toHaveLength(2)

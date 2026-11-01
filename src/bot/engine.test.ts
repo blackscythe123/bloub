@@ -188,13 +188,15 @@ describe('forme personnalisee', () => {
 describe('etats', () => {
   /**
    * La sequence est le CATALOGUE : les 14 etats releves sur la video, ceux que
-   * la palette propose et que la planche montre. Tout etat hors sequence est une
-   * transition d'interface, choisie et non mesuree — il ne doit donc jamais
+   * la palette propose et que la planche montre, suivis des 4 etats a visage
+   * expressif (`typing`, `cheer`, `sing`, `doze`), choisis mais proposes eux aussi.
+   * Tout etat hors sequence est une transition d'interface — il ne doit donc jamais
    * apparaitre dans le catalogue, et le rester est precisement ce qu'on verifie.
    */
-  it('garde les 14 etats de la video dans la sequence, et rien d autre', () => {
-    expect(SEQUENCE).toHaveLength(14)
-    expect(new Set(SEQUENCE).size).toBe(14)
+  it('garde les 14 etats de la video puis les 4 expressifs dans la sequence', () => {
+    expect(SEQUENCE).toHaveLength(18)
+    expect(new Set(SEQUENCE).size).toBe(18)
+    expect(SEQUENCE.slice(14)).toEqual(['typing', 'cheer', 'sing', 'doze'])
     for (const id of SEQUENCE) expect(STATES.some((s) => s.id === id), id).toBe(true)
   })
 

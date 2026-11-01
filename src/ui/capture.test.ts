@@ -157,3 +157,42 @@ describe('lecteur hors ecran', () => {
     }
   })
 })
+
+/**
+ * Bouche et styles d'yeux (`traits.ts`) dans l'export : ils sont perces dans le MEME masque
+ * que les yeux, par le meme composant, donc chaque export (PNG, GIF, MP4, SVG) les porte.
+ * Et sans `transform` : l'export anime reconnait les yeux a ce seul attribut.
+ */
+describe('extras du visage a l export', () => {
+  it('rend la bouche et les arcs du moteur, sans les confondre avec les yeux', async () => {
+    const reglages = { ...REGLAGES, expression: 'joyeux' }
+    const blocs: Block[] = [
+      { state: 'idle', duration: 2 },
+      { state: 'cheer', duration: 3.2 }
+    ]
+    const lecteur = await ouvreCycle(reglages, blocs, TAILLE)
+    try {
+      for (const t of [1, 3.4]) {
+        const svg = await lecteur.rendre(t)
+        const e = new BotEngine(
+          RAYON,
+          blocs[0]!.state,
+          SHAPE_BY_ID.get(reglages.shape)!.radii,
+          EXPRESSION_BY_ID.get(reglages.expression)!
+        )
+        const { index } = blockAt(blocs, t)
+        for (let i = 1; i <= index; i++) e.setState(blocs[i]!.state, offsetOf(blocs, i))
+        const attendu = e.sample(t)
+        const chemins = [...svg.querySelectorAll('mask path')].map((p) => p.getAttribute('d'))
+        expect(attendu.mouth, `t=${t}`).not.toBeNull()
+        expect(chemins, `t=${t}`).toContain(attendu.mouth!.d)
+        for (const m of attendu.marks) expect(chemins, `t=${t}`).toContain(m.d)
+        expect(attendu.marks.length, `t=${t}`).toBe(2)
+        // les yeux restent les seules formes du masque a porter un `transform`
+        expect(yeuxDe(svg), `t=${t}`).toEqual(attendu.eyes.map((y) => y.matrix))
+      }
+    } finally {
+      lecteur.ferme()
+    }
+  })
+})

@@ -112,9 +112,11 @@ const zh: typeof fr = {
     language: '语言',
     about: '关于',
     credits: '由 {name} 用 ❤️ 打造',
-    creditsAria: 'Jérémy 的 X 主页，在新标签页中打开',
+    creditsAria: 'Simiyon 的 GitHub 主页，在新标签页中打开',
     github: '在 GitHub 上查看项目',
-    githubAria: '项目的 GitHub 仓库，在新标签页中打开'
+    githubAria: '项目的 GitHub 仓库，在新标签页中打开',
+    templates: '动画卡片模板',
+    templatesAria: '可下载和克隆的动画卡片模板库'
   },
 
   states: {
@@ -132,7 +134,11 @@ const zh: typeof fr = {
     orbit: '轨道',
     burst: '爆散',
     comet: '彗星',
-    swirl: '漩涡'
+    swirl: '漩涡',
+    typing: '打字',
+    cheer: '欢呼',
+    sing: '唱歌',
+    doze: '打盹'
   },
 
   shapes: {
@@ -177,7 +183,13 @@ const zh: typeof fr = {
     fier: '得意',
     timide: '羞怯',
     blase: '无趣',
-    somnolent: '困倦'
+    somnolent: '困倦',
+    joyeux: '喜悦',
+    etoile: '星星眼',
+    clin: '俏皮',
+    chante: '哼歌',
+    endormi: '睡着',
+    concentre: '专注'
   }
 }
 

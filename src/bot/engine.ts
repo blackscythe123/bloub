@@ -13,6 +13,18 @@ import {
   type Silhouette
 } from './shape'
 import { STATE_BY_ID, type Pose, type StateDef, type StateId } from './states'
+import {
+  ARC_TRAIT,
+  BOUCHE_SOUS_YEUX,
+  BOUCHE_TRAIT,
+  blendFace,
+  cheminBouche,
+  cheminEndormi,
+  cheminEtoile,
+  cheminRieur,
+  poidsDesStyles,
+  type RepereVisage
+} from './traits'
 
 export interface RenderedEye {
   d: string
@@ -20,10 +32,33 @@ export interface RenderedEye {
   alpha: number
 }
 
+/** Bouche rendue : un chemin ferme, rempli ET trace (le trait emousse les coins). */
+export interface RenderedMouth {
+  d: string
+  alpha: number
+  /** epaisseur du trait, en unites de viewBox */
+  width: number
+}
+
+/** Style d'oeil rendu (arc rieur, etoile, arc endormi), deja pose a l'ecran. */
+export interface RenderedMark {
+  d: string
+  /** true = trait seul (les arcs), false = forme pleine (l'etoile) */
+  stroke: boolean
+  alpha: number
+  width: number
+  /** l'oeil qu'il remplace : 0 interieur, 1 exterieur, comme `Pose.eyes` */
+  eye: number
+}
+
 export interface BotFrame {
   bodyPath: string
   bodyAlpha: number
   eyes: RenderedEye[]
+  /** bouche (`traits.ts`), percee dans le masque comme les yeux ; null = pas de bouche */
+  mouth: RenderedMouth | null
+  /** styles d'yeux, perces dans le masque comme les yeux */
+  marks: RenderedMark[]
   dots: DotRender[]
   /** true = les points passent derriere le corps (particules de l'eclatement) */
   dotsBehind: boolean
@@ -115,7 +150,9 @@ function blendPose(a: Pose, b: Pose, t: number): Pose {
     ],
     // la pastille appartient a un seul des deux etats, elle ne se melange pas
     notif: t < 0.5 ? a.notif : b.notif,
-    dotsBehind: t < 0.5 ? a.dotsBehind : b.dotsBehind
+    dotsBehind: t < 0.5 ? a.dotsBehind : b.dotsBehind,
+    // bouche et styles d'yeux glissent comme le reste ; absents = zero
+    face: blendFace(a.face, b.face, t)
   }
 }
 
@@ -278,7 +315,7 @@ export class BotEngine {
       pose = { ...pose, sil: { ...pose.sil, radii: shape } }
     }
     if (def.baseFace && expr) {
-      pose = { ...pose, gaze: expr.gaze, split: expr.split, eyes: expr.eyes }
+      pose = { ...pose, gaze: expr.gaze, split: expr.split, eyes: expr.eyes, face: expr.face }
     }
     return pose
   }
@@ -421,6 +458,70 @@ export class BotEngine {
     if (STATE_BY_ID.get(id)?.blinkIn) this.blinkAt = now
   }
 
+  /**
+   * Bouche et styles d'yeux, poses dans le repere du visage : origine au milieu des deux
+   * yeux, un axe vers l'autre oeil et sa perpendiculaire vers le bas. Ils suivent donc le
+   * regard, le roulis et le decalage des yeux sans rien recalculer — ce sont les centres
+   * deja places, `radiusAtAngle` et `eyefit` compris.
+   *
+   * Pur : ne lit que ses arguments et la date (le scintillement de l'etoile).
+   */
+  private visage(
+    traits: NonNullable<Pose['face']>,
+    centres: Array<{ x: number; y: number; depth: number }>,
+    eyeAlpha: number,
+    now: number
+  ): { mouth: RenderedMouth | null; marks: RenderedMark[] } {
+    const R = this.scale
+    const [g, d] = centres as [(typeof centres)[0], (typeof centres)[0]]
+    const dx = d.x - g.x
+    const dy = d.y - g.y
+    const ecart = Math.hypot(dx, dy)
+    // deux yeux confondus : pas d'axe, on garde l'horizontale
+    const ux = ecart > 1e-6 ? dx / ecart : 1
+    const uy = ecart > 1e-6 ? dy / ecart : 0
+    const rep: RepereVisage = { x: (g.x + d.x) / 2, y: (g.y + d.y) / 2, ux, uy, vx: -uy, vy: ux }
+    // abscisse de chaque oeil sur l'axe du visage : les deux styles partagent une ligne
+    const ox = [-ecart / 2, ecart / 2]
+
+    const marks: RenderedMark[] = []
+    for (let i = 0; i < 2; i++) {
+      const vu = eyeAlpha * clamp(centres[i]!.depth / 0.12)
+      const happy = (traits.happy?.[i] ?? 0) * vu
+      const star = (traits.star?.[i] ?? 0) * vu
+      const sleep = (traits.sleep?.[i] ?? 0) * vu
+      const arc = { stroke: true, width: ARC_TRAIT * R, eye: i }
+      if (happy > 0.01) marks.push({ ...arc, d: cheminRieur(rep, ox[i]!, R), alpha: happy })
+      if (sleep > 0.01) marks.push({ ...arc, d: cheminEndormi(rep, ox[i]!, R), alpha: sleep })
+      if (star > 0.01) {
+        // scintillement : une fonction de la date, donc toujours rejouable
+        const r = 0.14 * (1 + 0.1 * Math.sin(now * Math.PI * 3 + i * 1.3))
+        marks.push({
+          d: cheminEtoile(rep, ox[i]!, r, R),
+          stroke: false,
+          alpha: star,
+          width: 0.025 * R,
+          eye: i
+        })
+      }
+    }
+
+    let mouth: RenderedMouth | null = null
+    const m = traits.mouth
+    // une bouche de largeur nulle est une bouche absente : elle pousse en fondu
+    const presence = m ? clamp(m.w / 0.03) : 0
+    if (m && presence > 0.01) {
+      const vu = eyeAlpha * clamp((g.depth + d.depth) / 2 / 0.12)
+      const bas: RepereVisage = {
+        ...rep,
+        x: rep.x + rep.vx * BOUCHE_SOUS_YEUX * R,
+        y: rep.y + rep.vy * BOUCHE_SOUS_YEUX * R
+      }
+      mouth = { d: cheminBouche(bas, m, R), alpha: presence * vu, width: BOUCHE_TRAIT * R }
+    }
+    return { mouth, marks }
+  }
+
   sample(now: number): BotFrame {
     const R = this.scale
     const def = STATE_BY_ID.get(this.cur)!
@@ -499,13 +600,21 @@ export class BotEngine {
       radiusAtAngle(pose.sil.radii, Math.atan2(y, x) - pose.sil.rot)
 
     const eyes: RenderedEye[] = []
+    const traits = pose.face
+    // centres des deux yeux a l'ecran, caches compris : la bouche et les styles s'y posent
+    const centres: Array<{ x: number; y: number; depth: number }> = []
     if (pose.eyeAlpha > 0.01) {
       const poses = eyePoses(gaze, R, pose.split)
       for (let i = 0; i < 2; i++) {
         const e = poses[i]!
+        const fit = bodyRadius(e.x, e.y)
+        centres.push({
+          x: e.x * fit + (offX + decalage.x) * R,
+          y: e.y * fit + (offY + decalage.y) * R,
+          depth: e.depth
+        })
         if (e.depth <= 0.02) continue
         const cfg = pose.eyes[i]!
-        const fit = bodyRadius(e.x, e.y)
         // Inclinaison propre de l'oeil : on compose le repere tangent avec une
         // rotation dans le plan de l'oeil (Basis x Rot). C'est ce qui permet des
         // inclinaisons en miroir entre les deux yeux.
@@ -522,10 +631,18 @@ export class BotEngine {
         eyes.push({
           d: capsulePath(cfg.w * R, cfg.h * R),
           matrix: `matrix(${r2(ax)},${r2(ay * k)},${r2(cx2)},${r2(cy2 * k)},${r2(e.x * fit + (offX + decalage.x) * R)},${r2(e.y * fit + (offY + decalage.y) * R)})`,
-          alpha: pose.eyeAlpha * clamp(e.depth / 0.12)
+          // la gelule s'efface a mesure qu'un style d'oeil prend sa place
+          alpha: traits
+            ? pose.eyeAlpha * clamp(e.depth / 0.12) * clamp(1 - poidsDesStyles(traits, i))
+            : pose.eyeAlpha * clamp(e.depth / 0.12)
         })
       }
     }
+
+    // --- bouche et styles d'yeux -------------------------------------------
+    const { mouth, marks } = traits && centres.length === 2
+      ? this.visage(traits, centres, pose.eyeAlpha, now)
+      : { mouth: null, marks: [] }
 
     // --- decor ------------------------------------------------------------
     const dots = pose.dots
@@ -543,6 +660,8 @@ export class BotEngine {
       bodyPath,
       bodyAlpha: pose.bodyAlpha,
       eyes,
+      mouth,
+      marks,
       dots,
       dotsBehind: pose.dotsBehind,
       // Les etats declarent des arcs en unites de rayon de boule ; le moteur

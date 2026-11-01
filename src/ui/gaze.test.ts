@@ -63,10 +63,10 @@ describe('les deux yeux restent visibles', () => {
   /**
    * L'invariant qui protege la fonctionnalite : passe un certain lacet, l'oeil
    * exterieur passe derriere le limbe de la sphere et le moteur le RETIRE de
-   * l'image — le bot se retrouve borgne. On balaie donc les 16 expressions aux
+   * l'image — le bot se retrouve borgne. On balaie donc toutes les expressions aux
    * quatre coins de l'ecran, demi-tour compris.
    */
-  it('sur les 16 expressions, aux quatre coins de l ecran', () => {
+  it('sur toutes les expressions, aux quatre coins de l ecran', () => {
     for (const e of EXPRESSIONS) {
       for (const nx of [-1, 0, 1]) {
         for (const ny of [-1, 0, 1]) {
@@ -74,10 +74,13 @@ describe('les deux yeux restent visibles', () => {
           moteur.setLook(lookTarget(vise({ nx, ny })), 0)
           const image = moteur.sample(1)
           expect(image.eyes, `${e.id} nx=${nx} ny=${ny}`).toHaveLength(2)
-          // ...et pas seulement presents : encore franchement opaques
-          for (const oeil of image.eyes) {
-            expect(oeil.alpha, `${e.id} nx=${nx} ny=${ny}`).toBeGreaterThan(0.5)
-          }
+          // ...et pas seulement presents : encore franchement opaques. Un oeil peut
+          // prendre un style (arc rieur, etoile, arc endormi) a la place de sa gelule :
+          // c'est alors l'ensemble des deux qui doit rester visible.
+          image.eyes.forEach((oeil, i) => {
+            const styles = image.marks.filter((m) => m.eye === i).reduce((s, m) => s + m.alpha, 0)
+            expect(oeil.alpha + styles, `${e.id} nx=${nx} ny=${ny}`).toBeGreaterThan(0.5)
+          })
         }
       }
     }

@@ -1,6 +1,7 @@
 import { EYE_H, EYE_SPLIT, EYE_W, REST_GAZE, type HeadGaze } from './face'
 import { lerp } from './math'
 import type { EyeCfg } from './states'
+import { blendFace, type FaceExtras } from './traits'
 
 /**
  * Expression de repos du bot.
@@ -39,12 +40,23 @@ export type ExpressionId =
   | 'timide'
   | 'blase'
   | 'somnolent'
+  | 'joyeux'
+  | 'etoile'
+  | 'clin'
+  | 'chante'
+  | 'endormi'
+  | 'concentre'
 
 export interface BotExpression {
   id: ExpressionId
   gaze: HeadGaze
   split: number
   eyes: [EyeCfg, EyeCfg]
+  /**
+   * Bouche et styles d'yeux (`traits.ts`). Absent sur les seize expressions d'origine,
+   * qui ne tiennent qu'aux gelules et rendent donc exactement ce qu'elles rendaient.
+   */
+  face?: FaceExtras
 }
 
 /** `tilt` en degrés, positif = le haut de la gélule part vers la droite. */
@@ -164,6 +176,65 @@ export const EXPRESSIONS: BotExpression[] = [
     gaze: { yaw: 6, pitch: -9, roll: -3 },
     split: 16,
     eyes: pair(0.2, 0.42, 0, 0.42)
+  },
+
+  /*
+   * Les six suivantes portent des extras (`traits.ts`) : bouche, yeux en arc, etoiles.
+   * Elles sont CHOISIES, d'apres les cartes de `studio/`, et non relevees sur la video.
+   * Deux regles les tiennent mignonnes : un regard quasi frontal (tangage proche de 0,
+   * sinon la bouche file vers le bord), et AUCUNE inclinaison en miroir — des yeux qui
+   * convergent sous un sourire se lisent comme un rictus mechant.
+   *
+   * Les gelules gardent des proportions ordinaires meme quand un style les efface : elles
+   * restent la reference du placement (`eyefit.ts`) et le point de depart d'un morph.
+   */
+  {
+    // arcs rieurs et grand sourire ouvert
+    id: 'joyeux',
+    gaze: { yaw: 4, pitch: 4, roll: 0 },
+    split: 17,
+    eyes: pair(0.2, 0.4),
+    face: { mouth: { smile: 0.9, open: 0.55, w: 0.1 }, happy: [1, 1] }
+  },
+  {
+    // yeux en etoiles, bouche ouverte d'emerveillement
+    id: 'etoile',
+    gaze: { yaw: 3, pitch: 4, roll: 0 },
+    split: 18,
+    eyes: pair(0.22, 0.42),
+    face: { mouth: { smile: 0.8, open: 0.6, w: 0.09 }, star: [1, 1] }
+  },
+  {
+    // clin d'oeil : la gelule interieure reste ouverte, l'autre devient un arc rieur
+    id: 'clin',
+    gaze: { yaw: 5, pitch: 4, roll: -3 },
+    split: 17,
+    eyes: pair(0.2, 0.42),
+    face: { mouth: { smile: 0.85, open: 0.12, w: 0.085 }, happy: [0, 1] }
+  },
+  {
+    // arcs rieurs et petite bouche ronde, celle d'une note tenue
+    id: 'chante',
+    gaze: { yaw: 3, pitch: 5, roll: 0 },
+    split: 17,
+    eyes: pair(0.2, 0.4),
+    face: { mouth: { smile: 0.3, open: 0.6, w: 0.055 }, happy: [1, 1] }
+  },
+  {
+    // arcs fermes vers le bas, bouche minuscule
+    id: 'endormi',
+    gaze: { yaw: 2, pitch: 0, roll: 0 },
+    split: 17,
+    eyes: pair(0.2, 0.4),
+    face: { mouth: { smile: 0.1, open: 0.15, w: 0.035 }, sleep: [1, 1] }
+  },
+  {
+    // les gelules d'origine, le regard qui baisse un peu, un petit « o »
+    id: 'concentre',
+    gaze: { yaw: 2, pitch: -6, roll: 0 },
+    split: 16,
+    eyes: pair(0.19, 0.38),
+    face: { mouth: { smile: 0.1, open: 0.32, w: 0.04 } }
   }
 ]
 
@@ -187,6 +258,10 @@ export function blendExpression(a: BotExpression, b: BotExpression, t: number): 
       roll: lerp(a.gaze.roll, b.gaze.roll, t)
     },
     split: lerp(a.split, b.split, t),
-    eyes: [lerpEyeCfg(a.eyes[0], b.eyes[0], t), lerpEyeCfg(a.eyes[1], b.eyes[1], t)]
+    eyes: [lerpEyeCfg(a.eyes[0], b.eyes[0], t), lerpEyeCfg(a.eyes[1], b.eyes[1], t)],
+    ...faceDe(blendFace(a.face, b.face, t))
   }
 }
+
+/** N'ajoute la cle que s'il y a des extras : les expressions d'origine gardent leur forme. */
+const faceDe = (face: FaceExtras | undefined) => (face ? { face } : {})

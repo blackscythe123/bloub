@@ -134,9 +134,11 @@ export default {
     language: 'Langue',
     about: 'À propos',
     credits: 'Créé avec ❤️ par {name}',
-    creditsAria: 'Jérémy sur X, dans un nouvel onglet',
+    creditsAria: 'Simiyon sur GitHub, dans un nouvel onglet',
     github: 'Voir le projet sur GitHub',
-    githubAria: 'Le dépôt du projet sur GitHub, dans un nouvel onglet'
+    githubAria: 'Le dépôt du projet sur GitHub, dans un nouvel onglet',
+    templates: 'Modèles de cartes animées',
+    templatesAria: 'Galerie de modèles de cartes animées à télécharger et cloner'
   },
 
   states: {
@@ -154,7 +156,11 @@ export default {
     orbit: 'Orbite',
     burst: 'Éclatement',
     comet: 'Comète',
-    swirl: 'Tourbillon'
+    swirl: 'Tourbillon',
+    typing: 'Frappe',
+    cheer: 'Hourra',
+    sing: 'Chanson',
+    doze: 'Assoupi'
   },
 
   shapes: {
@@ -199,6 +205,12 @@ export default {
     fier: 'Fier',
     timide: 'Timide',
     blase: 'Blasé',
-    somnolent: 'Somnolent'
+    somnolent: 'Somnolent',
+    joyeux: 'Joyeux',
+    etoile: 'Ébloui',
+    clin: 'Coquin',
+    chante: 'Chantonne',
+    endormi: 'Endormi',
+    concentre: 'Concentré'
   }
 }
