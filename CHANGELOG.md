@@ -90,5 +90,5 @@ fixed, and the measurement is in the commit that fixes it.
 - `StateDef.hint`: 15 hardcoded French strings nothing read, inside a type meant to
   become public.
 
-[unreleased]: https://github.com/jeremy-prt/bloub/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/jeremy-prt/bloub/releases/tag/v0.1.1
+[unreleased]: https://github.com/blackscythe123/bloub/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/blackscythe123/bloub/releases/tag/v0.1.1
