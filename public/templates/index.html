@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>bloub · animated card templates</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --bg: #0d1117;
+        --panel: #161b22;
+        --line: #30363d;
+        --ink: #e6edf3;
+        --muted: #8b949e;
+        --accent: #c9a7ff;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 'Segoe UI', system-ui, -apple-system, sans-serif; }
+      main { max-width: 1120px; margin: 0 auto; padding: 40px 20px 80px; }
+      a { color: var(--accent); }
+      h1 { font-size: 30px; margin: 0 0 6px; }
+      h2 { font-size: 20px; margin: 44px 0 6px; }
+      p.lead { color: var(--muted); margin: 0 0 22px; max-width: 760px; }
+      .back { display: inline-block; margin-bottom: 18px; color: var(--muted); text-decoration: none; }
+      video { width: 100%; border-radius: 14px; border: 1px solid var(--line); background: #000; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; margin-top: 16px; }
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+      .card .stage { border-radius: 10px; padding: 10px; display: grid; place-items: center; }
+      .card .stage.dark { background: #0d1117; }
+      .card .stage.light { background: #ffffff; }
+      .card img { width: 100%; height: auto; display: block; }
+      .card h3 { margin: 12px 0 2px; font-size: 15px; }
+      .card p { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+      .row { display: flex; gap: 8px; flex-wrap: wrap; }
+      .btn { display: inline-block; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); color: var(--ink); text-decoration: none; font-size: 13px; }
+      .btn:hover { border-color: var(--muted); }
+      pre { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; overflow-x: auto; font: 13px/1.5 ui-monospace, Consolas, monospace; }
+      code { font-family: ui-monospace, Consolas, monospace; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="/">&larr; back to bloub</a>
+      <h1>Animated card templates</h1>
+      <p class="lead">
+        Profile README cards built with the bloub engine: a 3D cloud that codes, goes to bed and sings when
+        Spotify is offline. Every card is a single SVG that animates inside a plain <code>&lt;img&gt;</code>,
+        dark and light. Download one, or clone the repo and make your own with the generators in
+        <code>studio/</code>.
+      </p>
+
+      <video src="bloub-cards-demo.mp4" autoplay muted loop playsinline poster=""></video>
+
+      <h2>The cards</h2>
+      <p class="lead">360 × 130, transparent background, colours cycle through 30 palettes every 150 s.</p>
+      <div class="grid" id="cards"></div>
+
+      <h2>Starter example</h2>
+      <p class="lead"><code>studio/hello.ts</code>: the smallest complete use of the engine, a still frame and a looping animation.</p>
+      <div class="grid">
+        <div class="card">
+          <div class="stage light"><img src="hello-still.svg" alt="bloub still frame" style="max-width: 200px" /></div>
+          <h3>hello-still.svg</h3>
+          <p>One frozen frame, rendered like the app does.</p>
+          <div class="row"><a class="btn" href="hello-still.svg" download>Download SVG</a></div>
+        </div>
+        <div class="card">
+          <div class="stage light"><img src="hello-animated.svg" alt="bloub animated loop" style="max-width: 200px" /></div>
+          <h3>hello-animated.svg</h3>
+          <p>idle → wink → wide eyes → idle, baked into SMIL.</p>
+          <div class="row"><a class="btn" href="hello-animated.svg" download>Download SVG</a></div>
+        </div>
+      </div>
+
+      <h2>Make your own</h2>
+      <pre>git clone https://github.com/blackscythe123/bloub
+cd bloub
+pnpm install                       # or npm install
+npx tsx studio/hello.ts            # output/hello-*.svg
+npx tsx studio/bloub-cards.ts      # output/coding|sleeping|spotify-offline-*.svg</pre>
+      <p class="lead">
+        Read <a href="https://github.com/blackscythe123/bloub/blob/main/AGENTS.md">AGENTS.md</a> for the whole
+        engine API, the SVG recipes and the design rules. Use a card on GitHub with a
+        <code>&lt;picture&gt;</code> so it follows the reader's light or dark theme.
+      </p>
+    </main>
+    <script>
+      const CARDS = [
+        ['coding', 'Coding', 'In the zone, hmm…, eureka!, it compiled!!, nailed it, shipping it. 12 s loop.'],
+        ['sleeping', 'Sleeping', 'Closes the laptop, hops into bed, falls asleep and dreams in code. Plays once, then loops the sleep.'],
+        ['spotify-offline', 'Spotify offline', 'AirPods in, no music: sad, idea, sings its own playlist, encore, power nap. 16 s loop.']
+      ]
+      const repo = 'https://github.com/blackscythe123/bloub/blob/main/studio/bloub-cards.ts'
+      document.getElementById('cards').innerHTML = CARDS.flatMap(([file, name, about]) =>
+        ['dark', 'light'].map((mode) => `
+        <div class="card">
+          <div class="stage ${mode}"><img src="${file}-${mode}.svg" alt="${name} card, ${mode}" /></div>
+          <h3>${name} · ${mode}</h3>
+          <p>${about}</p>
+          <div class="row">
+            <a class="btn" href="${file}-${mode}.svg" download>Download SVG</a>
+            <a class="btn" href="${file}-${mode}.svg" target="_blank">Open</a>
+            <a class="btn" href="${repo}" target="_blank">Generator</a>
+          </div>
+        </div>`)
+      ).join('')
+    </script>
+  </body>
+</html>

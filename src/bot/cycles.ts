@@ -96,6 +96,78 @@ export function defaultCycle(): Cycle {
   }
 }
 
+/**
+ * Montages modeles livres avec l'application, en plus du montage de reference : ceux des
+ * cartes animees de `studio/` (session de code, coucher, Spotify hors ligne) et « Spotify
+ * Vibe ». Comme le montage par defaut, ils deviennent des donnees utilisateur des qu'ils
+ * sont dans la liste : on les edite, on les supprime.
+ *
+ * Les durees passent par `clampDuration`, donc elles respectent toujours le plancher de
+ * chaque etat, meme si un `minDuration` change un jour.
+ */
+const modele = (id: string, name: string, blocks: Array<[StateId, number]>): Cycle => ({
+  id,
+  name,
+  blocks: blocks.map(([state, duration]) => ({ state, duration: clampDuration(state, duration) }))
+})
+
+export function presetCycles(): Cycle[] {
+  return [
+    modele('spotify-vibe', 'Spotify Vibe', [
+      ['idle', 2.2],
+      ['thinking', 1.8],
+      ['wink', 1.6],
+      ['wide', 1.8],
+      ['play', 2.0],
+      ['orbit', 3.2],
+      ['sleep', 2.4],
+      ['notify', 2.2],
+      ['play', 2.0],
+      ['orbit', 3.4],
+      ['comet', 2.4],
+      ['comet', 2.4]
+    ]),
+    // carte « coding » : tape, hmm, eureka, ca compile (on saute), clin d'oeil, on repart
+    modele('session-code', 'Coding session', [
+      ['typing', 2.4],
+      ['thinking', 2.6],
+      ['wide', 1.8],
+      ['cheer', 1.8],
+      ['wink', 1.6],
+      ['typing', 2.0]
+    ]),
+    // carte « sleeping » : dernier commit, livre, deconnexion, baille et s'endort, reve de code
+    modele('dodo', 'Bedtime', [
+      ['typing', 2.0],
+      ['wink', 1.6],
+      ['thinking', 2.0],
+      ['doze', 4.0],
+      ['comet', 2.4],
+      ['sleep', 2.4]
+    ]),
+    // carte « spotify offline » : de la musique ?, rien, une idee, la la la, rappel, nap
+    modele('spotify-hors-ligne', 'Spotify offline', [
+      ['idle', 2.2],
+      ['thinking', 1.8],
+      ['wide', 1.8],
+      ['sing', 3.0],
+      ['cheer', 1.8],
+      ['wink', 1.6],
+      ['doze', 3.6]
+    ])
+  ]
+}
+
+/**
+ * Ajoute les modeles absents d'une liste deja enregistree, sans toucher a ceux qui y sont
+ * (meme id = la version de l'utilisateur fait foi) et sans depasser `MAX_CYCLES`.
+ */
+export function ajouteModeles(cycles: Cycle[]): Cycle[] {
+  const ids = new Set(cycles.map((c) => c.id))
+  const manquants = presetCycles().filter((c) => !ids.has(c.id))
+  return [...cycles, ...manquants].slice(0, Math.max(cycles.length, MAX_CYCLES))
+}
+
 export function totalDuration(blocks: Block[]): number {
   return blocks.reduce((sum, b) => sum + b.duration, 0)
 }

@@ -48,6 +48,8 @@ import {
   blockAt,
   blocksWith,
   defaultCycle,
+  presetCycles,
+  ajouteModeles,
   makeBlock,
   parseCycles,
   totalDuration,
@@ -137,7 +139,23 @@ const intro = ref(
  * ses modifications de celui-la.
  */
 const restored = parseCycles(lis('cycles'))
-const cycles = ref<Cycle[]>(restored.length ? restored : [defaultCycle()])
+/**
+ * Les montages modeles arrivent une seule fois : au premier lancement avec le montage de
+ * reference, ou a la premiere visite qui suit leur ajout (version `MODELES`) pour ceux qui
+ * avaient deja des montages. Un modele supprime ensuite ne revient donc pas.
+ */
+const MODELES = '1'
+const cycles = ref<Cycle[]>(
+  restored.length
+    ? lis('modeles') === MODELES
+      ? restored
+      : ajouteModeles(restored)
+    : [defaultCycle(), ...presetCycles()]
+)
+// la liste fusionnee est ecrite tout de suite : sinon le drapeau dirait « deja ajoutes »
+// alors que le stockage ne les contient pas encore, et ils disparaitraient au rechargement
+if (restored.length && lis('modeles') !== MODELES) ecris('cycles', JSON.stringify(cycles.value))
+ecris('modeles', MODELES)
 
 /**
  * Ou trouver un etat pour les liens `#etat=` : dans le montage courant s'il y

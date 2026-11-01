@@ -3,11 +3,11 @@ import { computed } from 'vue'
 import { langue, LANGUES, t } from '@/i18n'
 
 /** Comptes de l'auteur. */
-const X = 'https://x.com/worlz_'
-const GITHUB = 'https://github.com/jeremy-prt/bloub'
+const X = 'https://github.com/blackscythe123'
+const GITHUB = 'https://github.com/blackscythe123/bloub'
 
 /**
- * « Cree par Jeremy » : le nom est un lien, donc la phrase se coupe autour de
+ * « Cree par Simiyon » : le nom est un lien, donc la phrase se coupe autour de
  * lui. On ne peut pas la decouper en deux traductions (« Cree par » + le nom) —
  * le chinois met l'auteur AU MILIEU (« 由 X 创作 ») et l'anglais devant le verbe.
  * Le gabarit garde donc `{name}` et c'est ici qu'on separe ce qui vient avant de
@@ -139,6 +139,25 @@ function auClavier(event: KeyboardEvent, index: number) {
       </svg>
     </a>
 
+    <!-- galerie des cartes animees du dossier studio/ (page statique de public/templates) -->
+    <a
+      class="mt-2 flex items-center gap-2 rounded-xl border border-[var(--line)] px-3 py-2 text-sm transition hover:border-[var(--muted)]"
+      href="/templates/index.html"
+      :aria-label="t('settings.templatesAria')"
+    >
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" class="shrink-0">
+        <path
+          d="M2.5 3.5h11v9h-11zM2.5 6.5h11M5.5 9h5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <span class="flex-1">{{ t('settings.templates') }}</span>
+    </a>
+
     <p class="mt-4 text-xs text-[var(--muted)]">
       {{ credits.avant
       }}<a
@@ -147,7 +166,7 @@ function auClavier(event: KeyboardEvent, index: number) {
         target="_blank"
         rel="noopener noreferrer"
         :aria-label="t('settings.creditsAria')"
-        >Jérémy</a
+        >Simiyon</a
       >{{ credits.apres }}
     </p>
   </div>

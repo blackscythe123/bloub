@@ -4,6 +4,7 @@ import {
   MAX_BLOCS,
   MAX_CYCLES,
   MIN_BLOCK,
+  ajouteModeles,
   blockAt,
   blocksWith,
   clampDuration,
@@ -13,6 +14,7 @@ import {
   moveBlock,
   nextCycleId,
   parseCycles,
+  presetCycles,
   totalDuration,
   type Cycle,
   uniqueName
@@ -217,5 +219,32 @@ describe('relecture du stockage', () => {
     expect(parseCycles('[{"id":"c1","name":"A","blocks":[{"state":"swirl","duration":2}]}]')).toEqual(
       []
     )
+  })
+})
+
+describe('montages modeles', () => {
+  it('ne contiennent que des blocs valides, deja dans leurs bornes', () => {
+    for (const c of presetCycles()) {
+      expect(c.blocks.length).toBeGreaterThan(0)
+      for (const b of c.blocks) expect(b.duration).toBe(clampDuration(b.state, b.duration))
+    }
+  })
+
+  it('ont des ids uniques, distincts du montage de reference', () => {
+    const ids = [defaultCycle().id, ...presetCycles().map((c) => c.id)]
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('survivent a un aller-retour par le stockage', () => {
+    const tous = [defaultCycle(), ...presetCycles()]
+    expect(parseCycles(JSON.stringify(tous))).toEqual(tous)
+  })
+
+  it("n'ecrasent pas la version de l'utilisateur et ne se dupliquent pas", () => {
+    const perso = { id: 'spotify-vibe', name: 'Ma version', blocks: [{ state: 'idle' as const, duration: 2 }] }
+    const fusion = ajouteModeles([defaultCycle(), perso])
+    expect(fusion.filter((c) => c.id === 'spotify-vibe')).toEqual([perso])
+    expect(ajouteModeles(fusion)).toEqual(fusion)
+    expect(fusion.map((c) => c.id)).toEqual(['defaut', 'spotify-vibe', 'session-code', 'dodo', 'spotify-hors-ligne'])
   })
 })
