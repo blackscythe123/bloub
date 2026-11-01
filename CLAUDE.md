@@ -179,7 +179,7 @@ Assert on the *state* instead (a `MutationObserver` still fires; an
 
 ## Useful URLs
 
-- `#planche`: the 14 states side by side, frozen. The only safe path: it doesn't
+- `#planche`: the 18 states side by side, frozen. The only safe path: it doesn't
   depend on any montage.
 - `#arrivee`: replays the arrival. It otherwise only plays on a genuine visit, so
   without this link you can't see it again in a session.
