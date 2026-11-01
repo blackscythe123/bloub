@@ -1,7 +1,16 @@
 # bloub
 
+> **This version** is maintained by [Simiyon Vinscent Samuel](https://github.com/blackscythe123) and adds:
+> expressive faces (mouths, happy / star / sleepy eyes, a wink) with 6 new expressions and 4 new
+> animations (typing, cheer, sing, doze), template montages, and a `studio/` of generators that
+> bake the engine into animated GitHub README cards ([live templates](public/templates/index.html),
+> [AGENTS.md](AGENTS.md) for the full guide). Built on [jeremy-prt/bloub](https://github.com/jeremy-prt/bloub)
+> by Jérémy Perret (MIT).
+>
+> ![The README cards](docs/cards-demo.gif)
+
 An SVG recreation of the x.ai bot avatar: **one filled black shape** that morphs
-between 14 states, **two white shapes** for the eyes that morph independently, on
+between 18 states, **two white shapes** for the eyes that morph independently, on
 a plain background. No animation library.
 
 ![The avatar going through idle, wink, orbit and burst](docs/demo.gif)
@@ -26,7 +35,7 @@ only gate, so run `pnpm build` before you call something done.
 ## What's in it
 
 The rail on the left switches between three views. **Customise** offers 8 body
-shapes, 12 colours and 16 rest expressions, kept between visits. **Animations** is
+shapes, 12 colours and 22 rest expressions, kept between visits. **Animations** is
 a small editor: arrange states into a timeline, set how long each is held, save the
 result. **Settings** holds the language (French, English or Chinese) and the
 credits.
@@ -37,10 +46,10 @@ video encoder is only fetched the first time you ask for one.
 
 Two URLs are worth knowing:
 
-- `#planche`: the 14 states side by side, frozen. Quick visual check.
+- `#planche`: the 18 states side by side, frozen. Quick visual check.
 - `#etat=orbit&stop`: opens one state directly, playback paused.
 
-![The 14 states, frozen side by side](docs/states.png)
+![The states, frozen side by side](docs/states.png)
 
 ## Why the numbers look arbitrary
 
