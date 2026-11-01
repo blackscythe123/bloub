@@ -5,6 +5,7 @@
   "type": "module",
   "description": "SVG recreation of the x.ai bot avatar. One shape morphing through 14 states, measured off the reference video frame by frame.",
   "license": "MIT",
+  "homepage": "https://bloub.simiyonvinscentsamuel.tech",
   "author": "Simiyon Vinscent Samuel (blackscythe123)",
   "repository": {
     "type": "git",

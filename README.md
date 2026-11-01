@@ -1,9 +1,11 @@
 # bloub
 
+**Live:** [bloub.simiyonvinscentsamuel.tech](https://bloub.simiyonvinscentsamuel.tech) · **Card templates:** [bloub.simiyonvinscentsamuel.tech/templates](https://bloub.simiyonvinscentsamuel.tech/templates/)
+
 > **This version** is maintained by [Simiyon Vinscent Samuel](https://github.com/blackscythe123) and adds:
 > expressive faces (mouths, happy / star / sleepy eyes, a wink) with 6 new expressions and 4 new
 > animations (typing, cheer, sing, doze), template montages, and a `studio/` of generators that
-> bake the engine into animated GitHub README cards ([live templates](public/templates/index.html),
+> bake the engine into animated GitHub README cards ([live templates](https://bloub.simiyonvinscentsamuel.tech/templates/),
 > [AGENTS.md](AGENTS.md) for the full guide). Built on [jeremy-prt/bloub](https://github.com/jeremy-prt/bloub)
 > by Jérémy Perret (MIT).
 >
