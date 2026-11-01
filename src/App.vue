@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import BotTile from '@/components/BotTile.vue'
 import Customizer from '@/components/Customizer.vue'
 import BloubBot from '@/components/BloubBot.vue'
@@ -285,8 +285,14 @@ const playing = ref(intro.value || (initial.playing && view.value === 'animation
  * Consomme a la premiere lecture : une ecriture provoque au plus un evenement,
  * donc on ne doit pas ignorer durablement ce fragment — un retour arriere du
  * navigateur vers ce meme etat est une vraie navigation, et elle doit compter.
+ *
+ * Une FILE et pas une seule case : deux ecritures rapprochees (lecture lancee puis
+ * saut de bloc, au clic sur une vignette) arrivent avant leurs evenements. Avec une
+ * case, le premier evenement l'effacait et le second, juge etranger, renvoyait la
+ * tete de lecture au PREMIER bloc portant l'etat. Chaque evenement porte son
+ * propre `newURL` : on retire exactement l'ecriture qu'il annonce.
  */
-let ecritParNous = ''
+const ecritsParNous: string[] = []
 
 // L'URL est partageable, donc elle suit l'etat ET la lecture. replace et pas
 // push : on ne veut pas un cran d'historique par etat.
@@ -297,14 +303,19 @@ watch([state, playing], ([id, on]) => {
   // qui replacait la tete de lecture sur les index du montage de l'utilisateur,
   // alors que la vue joue le sien : le lecteur restait coince sur l'orbite.
   if (view.value !== 'animations') return
-  ecritParNous = `#etat=${id}${on ? '' : '&stop'}`
-  location.replace(ecritParNous)
+  const hash = `#etat=${id}${on ? '' : '&stop'}`
+  // un hash inchange ne declenche aucun evenement : l'empiler le laisserait en file
+  if (location.hash === hash) return
+  ecritsParNous.push(hash)
+  location.replace(hash)
 })
 
-window.addEventListener('hashchange', () => {
-  // notre propre ecriture n'est pas une navigation : cf. `ecritParNous`
-  if (location.hash === ecritParNous) {
-    ecritParNous = ''
+window.addEventListener('hashchange', (e) => {
+  // notre propre ecriture n'est pas une navigation : cf. `ecritsParNous`
+  const annonce = new URL(e.newURL).hash
+  const i = ecritsParNous.indexOf(annonce)
+  if (i >= 0) {
+    ecritsParNous.splice(i, 1)
     return
   }
   const next = readHash()
@@ -533,10 +544,21 @@ watch(view, (v) => {
 const order = computed(() => SEQUENCE.map((id) => STATES.find((s) => s.id === id)!))
 
 /** Ajoute une animation a la fin du montage courant. */
-function addBlock(id: StateId) {
+/**
+ * Ajouter un bloc le JOUE aussi. Sans ca le clic semblait mort : le bloc partait en
+ * fin de montage, souvent hors de vue, et en pause rien ne bougeait a l'ecran. On
+ * cale donc la tete de lecture sur le nouveau bloc et on lance la lecture. Montage
+ * plein (`MAX_BLOCS`) : rien n'est ajoute, on rejoue la derniere occurrence de l'etat.
+ */
+async function addBlock(id: StateId) {
   cycles.value = cycles.value.map((c) =>
     c.id === cycle.value.id ? { ...c, blocks: blocksWith(c.blocks, id) } : c
   )
+  const index = cycle.value.blocks.map((b) => b.state).lastIndexOf(id)
+  if (index < 0) return
+  playing.value = true
+  await nextTick()
+  bot.value?.seek(index, 0)
 }
 
 /**
